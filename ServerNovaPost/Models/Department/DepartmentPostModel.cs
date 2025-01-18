@@ -1,4 +1,5 @@
-﻿using ServerNovaPost.Models.Area;
+﻿using Newtonsoft.Json;
+using ServerNovaPost.Models.Area;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,7 +16,7 @@ namespace ServerNovaPost.Models.Department
         public MethodProperties? MethodProperties { get; set; }
     }
 
-    public class MethodProperties 
+    public class MethodProperties
     {
         public string CityRef { get; set; }
     }

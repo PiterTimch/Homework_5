@@ -14,4 +14,9 @@ namespace ServerNovaPost.Models.City
         public string CalledMethod { get; set; } = "getCities";
         public MethodProperties? MethodProperties { get; set; }
     }
+
+    public class MethodProperties 
+    {
+        public string AreaRef { get; set; }
+    }
 }

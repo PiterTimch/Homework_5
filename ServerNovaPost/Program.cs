@@ -5,13 +5,15 @@ namespace ServerNovaPost
 {
     internal class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             Console.InputEncoding = Encoding.UTF8;
             Console.OutputEncoding = Encoding.UTF8;
 
+            Console.WriteLine("Завантаження...");
+
             NovaPostService novaPostService = new NovaPostService();
-            novaPostService.SeedAreas();
+            await novaPostService.SeedAreasAsync();
 
             Console.WriteLine("Фініш!");
         }

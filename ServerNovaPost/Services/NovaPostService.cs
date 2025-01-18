@@ -29,92 +29,74 @@ namespace ServerNovaPost.Services
             _context.Database.Migrate();
         }
 
-        public void SeedAreas()
+        public async Task SeedAreasAsync()
         {
             if (!_context.Areas.Any())
             {
                 var modelRequest = new AreaPostModel
                 {
-                    ApiKey = AppDatabase.NovaPostKey,
-                    ModelName = "Address",
-                    CalledMethod = "getAreas",
-                    MethodProperties = new Models.Area.MethodProperties() { }
+                    ApiKey = AppDatabase.NovaPostKey
                 };
 
-                string json = JsonConvert.SerializeObject(modelRequest, new JsonSerializerSettings
+                var areas = await GetApiResponseAsync<AreaResponse>(modelRequest);
+
+                if (areas?.Data != null && areas.Success)
                 {
-                    ContractResolver = new CamelCasePropertyNamesContractResolver(),
-                    Formatting = Formatting.Indented
-                });
-                HttpContent context = new StringContent(json, Encoding.UTF8, "application/json");
-                HttpResponseMessage response = _httpClient.PostAsync(_url, context).Result;
-                if (response.IsSuccessStatusCode)
-                {
-                    string jsonResp = response.Content.ReadAsStringAsync().Result;
-                    var result = JsonConvert.DeserializeObject<AreaResponse>(jsonResp);
-                    if (result != null && result.Data != null && result.Success)
+                    foreach (var area in areas.Data)
                     {
-                        foreach (var item in result.Data)
+                        var cities = await SeedCitiesAsync(area.Ref);
+
+                        var areaEntity = new AreaEntity
                         {
-                            var entity = new AreaEntity
-                            {
-                                Ref = item.Ref,
-                                AreasCenter = item.AreasCenter,
-                                Description = item.Description,
-                                Cities = SeedCities(item.Ref)
-                            };
-                            _context.Areas.Add(entity);
-                            _context.SaveChanges();
-                        }
+                            Ref = area.Ref,
+                            AreasCenter = area.AreasCenter,
+                            Description = area.Description,
+                            Cities = cities
+                        };
+
+                        _context.Areas.Add(areaEntity);
+                        await _context.SaveChangesAsync();
                     }
                 }
             }
         }
 
-        private List<CityEntity> SeedCities(string areaRef)
+
+        private async Task<List<CityEntity>> SeedCitiesAsync(string areaRef)
         {
             var cityPostModel = new CityPostModel
             {
                 ApiKey = AppDatabase.NovaPostKey,
-                MethodProperties = new Models.Area.MethodProperties() { }
+                MethodProperties = new Models.City.MethodProperties { AreaRef = areaRef }
             };
 
-            string json = JsonConvert.SerializeObject(cityPostModel, new JsonSerializerSettings
-            {
-                ContractResolver = new CamelCasePropertyNamesContractResolver(),
-                Formatting = Formatting.Indented
-            });
-
-            HttpContent content = new StringContent(json, Encoding.UTF8, "application/json");
-            HttpResponseMessage response = _httpClient.PostAsync(_url, content).Result;
-
+            var cities = await GetApiResponseAsync<CityResponse>(cityPostModel);
             var cityEntities = new List<CityEntity>();
 
-            if (response.IsSuccessStatusCode)
+            if (cities?.Data != null && cities.Success)
             {
-                string jsonResp = response.Content.ReadAsStringAsync().Result;
-                var cityResult = JsonConvert.DeserializeObject<CityResponse>(jsonResp);
-                if (cityResult != null && cityResult.Data != null && cityResult.Success)
+                foreach (var city in cities.Data)
                 {
-                    foreach (var cityItem in cityResult.Data.Where(c => c.Area == areaRef))
+                    var departments = await SeedDepartmentsAsync(city.Ref);
+
+                    var cityEntity = new CityEntity
                     {
-                        var cityEntity = new CityEntity
-                        {
-                            Ref = cityItem.Ref,
-                            Description = cityItem.Description,
-                            TypeDescription = cityItem.SettlementTypeDescription,
-                            Departments = SeedDepartments(cityItem.Ref)
-                        };
-                        cityEntities.Add(cityEntity);
-                        _context.SaveChanges();
-                    }
+                        Ref = city.Ref,
+                        Description = city.Description,
+                        TypeDescription = city.SettlementTypeDescription,
+                        Departments = departments
+                    };
+
+                    _context.Cities.Add(cityEntity);
+                    await _context.SaveChangesAsync();
+                    cityEntities.Add(cityEntity);
                 }
             }
 
             return cityEntities;
         }
 
-        private List<DepartmentEntity> SeedDepartments(string cityRef)
+        private async Task<List<DepartmentEntity>> SeedDepartmentsAsync(string cityRef)
         {
             var departmentPostModel = new DepartmentPostModel
             {
@@ -122,41 +104,65 @@ namespace ServerNovaPost.Services
                 MethodProperties = new Models.Department.MethodProperties { CityRef = cityRef }
             };
 
-            string json = JsonConvert.SerializeObject(departmentPostModel, new JsonSerializerSettings
+            var departments = await GetApiResponseAsync<DepartmentResponse>(departmentPostModel);
+            var departmentEntities = new List<DepartmentEntity>();
+
+            if (departments?.Data != null && departments.Success)
+            {
+                foreach (var dep in departments.Data)
+                {
+                    var departmentEntity = new DepartmentEntity
+                    {
+                        Ref = dep.Ref,
+                        Description = dep.Description,
+                        Address = dep.ShortAddress,
+                        Phone = dep.Phone
+                    };
+
+                    _context.Departments.Add(departmentEntity);
+                    await _context.SaveChangesAsync();
+                    departmentEntities.Add(departmentEntity);
+                }
+            }
+
+            return departmentEntities;
+        }
+
+
+        private async Task<T?> GetApiResponseAsync<T>(object model)
+        {
+            string json = JsonConvert.SerializeObject(model, new JsonSerializerSettings
             {
                 ContractResolver = new CamelCasePropertyNamesContractResolver(),
                 Formatting = Formatting.Indented
             });
 
-            HttpContent content = new StringContent(json, Encoding.UTF8, "application/json");
-            HttpResponseMessage response = _httpClient.PostAsync(_url, content).Result;
-
-            var departmentEntities = new List<DepartmentEntity>();
-
-            if (response.IsSuccessStatusCode)
+            if (model is CityPostModel)
             {
-                string jsonResp = response.Content.ReadAsStringAsync().Result;
-                var departmentResult = JsonConvert.DeserializeObject<DepartmentResponse>(jsonResp);
+                json = json.Replace("areaRef", "AreaRef");
+            }
+            else if (model is DepartmentPostModel)
+            {
+                json = json.Replace("cityRef", "CityRef");
+            }
+            try
+            {
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync(_url, content);
 
-                if (departmentResult != null && departmentResult.Data != null && departmentResult.Success)
+                if (response.IsSuccessStatusCode)
                 {
-                    foreach (var departmentItem in departmentResult.Data)
-                    {
-                        var departmentEntity = new DepartmentEntity
-                        {
-                            Ref = departmentItem.Ref,
-                            Description = departmentItem.Description,
-                            Address = departmentItem.ShortAddress,
-                            Phone = departmentItem.Phone
-                        };
-                        departmentEntities.Add(departmentEntity);
-                        _context.Departments.Add(departmentEntity);
-                    }
-                    _context.SaveChanges();
+                    string jsonResp = await response.Content.ReadAsStringAsync();
+                    return JsonConvert.DeserializeObject<T>(jsonResp);
                 }
             }
+            catch (Exception)
+            {
 
-            return departmentEntities;
+            }
+            
+
+            return default;
         }
 
     }
