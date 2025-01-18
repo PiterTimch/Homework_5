@@ -12,10 +12,17 @@ namespace ServerNovaPost
 
             Console.WriteLine("Завантаження...");
 
-            NovaPostService novaPostService = new NovaPostService();
-            await novaPostService.SeedAreasAsync();
+            try
+            {
+                NovaPostService novaPostService = new NovaPostService();
+                await novaPostService.SeedAreasAsync();
 
-            Console.WriteLine("Фініш!");
+                Console.WriteLine("Фініш!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+            }
         }
     }
 }

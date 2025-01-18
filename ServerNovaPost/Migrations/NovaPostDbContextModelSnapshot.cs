@@ -51,6 +51,11 @@ namespace ServerNovaPost.Migrations
                     b.Property<int?>("AreaEntityId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("AreaRef")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -86,6 +91,11 @@ namespace ServerNovaPost.Migrations
 
                     b.Property<int?>("CityEntityId")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("CityRef")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
                         .IsRequired()

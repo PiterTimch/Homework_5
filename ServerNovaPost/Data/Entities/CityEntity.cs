@@ -14,6 +14,10 @@ namespace ServerNovaPost.Data.Entities
         public string Ref { get; set; }
 
         [Required]
+        [StringLength(50)]
+        public string AreaRef { get; set; }
+
+        [Required]
         [StringLength(255)]
         public string Description { get; set; }
 

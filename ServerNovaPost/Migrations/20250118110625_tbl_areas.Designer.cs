@@ -10,8 +10,8 @@ using ServerNovaPost.Data;
 namespace ServerNovaPost.Migrations
 {
     [DbContext(typeof(NovaPostDbContext))]
-    [Migration("20250117071237_tbl_cities")]
-    partial class tbl_cities
+    [Migration("20250118110625_tbl_areas")]
+    partial class tbl_areas
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -54,6 +54,11 @@ namespace ServerNovaPost.Migrations
                     b.Property<int?>("AreaEntityId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("AreaRef")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -89,6 +94,11 @@ namespace ServerNovaPost.Migrations
 
                     b.Property<int?>("CityEntityId")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("CityRef")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
                         .IsRequired()

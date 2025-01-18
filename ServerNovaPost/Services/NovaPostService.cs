@@ -17,10 +17,6 @@ namespace ServerNovaPost.Services
 {
     public class NovaPostService
     {
-        private readonly HttpClient _httpClient;
-        private readonly string _url;
-        private readonly NovaPostDbContext _context;
-
         public NovaPostService()
         {
             _httpClient = new HttpClient();
@@ -29,10 +25,71 @@ namespace ServerNovaPost.Services
             _context.Database.Migrate();
         }
 
+        private async Task LoadCitiesLocal()
+        {
+            var cityPostModel = new CityPostModel
+            {
+                ApiKey = AppDatabase.NovaPostKey
+            };
+
+            var cities = await GetApiResponseAsync<CityResponse>(cityPostModel);
+            _cityEntities = new List<CityEntity>();
+
+            if (cities?.Data != null && cities.Success)
+            {
+                foreach (var city in cities.Data)
+                {
+                    var departments = GetDepartments(city.Ref);
+
+                    var cityEntity = new CityEntity
+                    {
+                        Ref = city.Ref,
+                        Description = city.Description,
+                        TypeDescription = city.SettlementTypeDescription,
+                        Departments = departments,
+                        AreaRef = city.Area
+                    };
+
+                    _cityEntities.Add(cityEntity);
+                }
+            }
+        }
+
+        private async Task LoadDepartamentsLocal()
+        {
+            var departmentPostModel = new DepartmentPostModel
+            {
+                ApiKey = AppDatabase.NovaPostKey
+            };
+
+            var departments = await GetApiResponseAsync<DepartmentResponse>(departmentPostModel);
+            _departmentEntities = new List<DepartmentEntity>();
+
+            if (departments?.Data != null && departments.Success)
+            {
+                foreach (var dep in departments.Data)
+                {
+                    var departmentEntity = new DepartmentEntity
+                    {
+                        Ref = dep.Ref,
+                        Description = dep.Description,
+                        Address = dep.ShortAddress,
+                        Phone = dep.Phone,
+                        CityRef = dep.CityRef
+                    };
+
+                    _departmentEntities.Add(departmentEntity);
+                }
+            }
+        }
+
         public async Task SeedAreasAsync()
         {
             if (!_context.Areas.Any())
             {
+                await LoadDepartamentsLocal();
+                await LoadCitiesLocal();
+
                 var modelRequest = new AreaPostModel
                 {
                     ApiKey = AppDatabase.NovaPostKey
@@ -44,7 +101,7 @@ namespace ServerNovaPost.Services
                 {
                     foreach (var area in areas.Data)
                     {
-                        var cities = await SeedCitiesAsync(area.Ref);
+                        var cities = GetCities(area.Ref);
 
                         var areaEntity = new AreaEntity
                         {
@@ -62,70 +119,14 @@ namespace ServerNovaPost.Services
         }
 
 
-        private async Task<List<CityEntity>> SeedCitiesAsync(string areaRef)
+        private List<CityEntity> GetCities(string areaRef)
         {
-            var cityPostModel = new CityPostModel
-            {
-                ApiKey = AppDatabase.NovaPostKey,
-                MethodProperties = new Models.City.MethodProperties { AreaRef = areaRef }
-            };
-
-            var cities = await GetApiResponseAsync<CityResponse>(cityPostModel);
-            var cityEntities = new List<CityEntity>();
-
-            if (cities?.Data != null && cities.Success)
-            {
-                foreach (var city in cities.Data)
-                {
-                    var departments = await SeedDepartmentsAsync(city.Ref);
-
-                    var cityEntity = new CityEntity
-                    {
-                        Ref = city.Ref,
-                        Description = city.Description,
-                        TypeDescription = city.SettlementTypeDescription,
-                        Departments = departments
-                    };
-
-                    _context.Cities.Add(cityEntity);
-                    await _context.SaveChangesAsync();
-                    cityEntities.Add(cityEntity);
-                }
-            }
-
-            return cityEntities;
+            return _cityEntities.Where(c => c.AreaRef == areaRef).ToList();
         }
 
-        private async Task<List<DepartmentEntity>> SeedDepartmentsAsync(string cityRef)
+        private List<DepartmentEntity> GetDepartments(string cityRef)
         {
-            var departmentPostModel = new DepartmentPostModel
-            {
-                ApiKey = AppDatabase.NovaPostKey,
-                MethodProperties = new Models.Department.MethodProperties { CityRef = cityRef }
-            };
-
-            var departments = await GetApiResponseAsync<DepartmentResponse>(departmentPostModel);
-            var departmentEntities = new List<DepartmentEntity>();
-
-            if (departments?.Data != null && departments.Success)
-            {
-                foreach (var dep in departments.Data)
-                {
-                    var departmentEntity = new DepartmentEntity
-                    {
-                        Ref = dep.Ref,
-                        Description = dep.Description,
-                        Address = dep.ShortAddress,
-                        Phone = dep.Phone
-                    };
-
-                    _context.Departments.Add(departmentEntity);
-                    await _context.SaveChangesAsync();
-                    departmentEntities.Add(departmentEntity);
-                }
-            }
-
-            return departmentEntities;
+            return _departmentEntities.Where(d => d.CityRef == cityRef).ToList();
         }
 
 
@@ -165,5 +166,12 @@ namespace ServerNovaPost.Services
             return default;
         }
 
+
+        private readonly HttpClient _httpClient;
+        private readonly string _url;
+        private readonly NovaPostDbContext _context;
+        
+        private List<DepartmentEntity> _departmentEntities;
+        private List<CityEntity> _cityEntities;
     }
 }

@@ -32,6 +32,7 @@ namespace ServerNovaPost.Migrations
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     Ref = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
+                    AreaRef = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
                     Description = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
                     TypeDescription = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
                     AreaEntityId = table.Column<int>(type: "INTEGER", nullable: true)
@@ -53,6 +54,7 @@ namespace ServerNovaPost.Migrations
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     Ref = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
+                    CityRef = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
                     Description = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
                     Address = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
                     Phone = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
